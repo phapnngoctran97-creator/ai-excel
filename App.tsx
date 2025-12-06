@@ -1,10 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { FileUpload } from './components/FileUpload';
 import { AnalysisResultView } from './components/AnalysisResultView';
 import { parseExcelFile } from './utils/excelUtils';
 import { analyzeFormulas } from './services/geminiService';
-import { AnalysisResult, SheetData } from './types';
-import { Layout, FileSpreadsheet, Sparkles, AlertCircle, Link as LinkIcon, Loader2 } from 'lucide-react';
+import { AnalysisResult } from './types';
+import { Layout, FileSpreadsheet, Sparkles, AlertCircle, Link as LinkIcon, Loader2, Settings, Key, X, Save } from 'lucide-react';
 
 function App() {
   const [analyzing, setAnalyzing] = useState(false);
@@ -13,6 +13,27 @@ function App() {
   const [activeTab, setActiveTab] = useState<'upload' | 'gsheet'>('upload');
   const [userContext, setUserContext] = useState('');
   const [sheetLink, setSheetLink] = useState('');
+  
+  // Settings State
+  const [showSettings, setShowSettings] = useState(false);
+  const [apiKey, setApiKey] = useState('');
+  const [savedKey, setSavedKey] = useState('');
+
+  // Load key from localStorage on mount
+  useEffect(() => {
+    const storedKey = localStorage.getItem('gemini_api_key');
+    if (storedKey) {
+      setApiKey(storedKey);
+      setSavedKey(storedKey);
+    }
+  }, []);
+
+  const handleSaveKey = () => {
+    localStorage.setItem('gemini_api_key', apiKey);
+    setSavedKey(apiKey);
+    setShowSettings(false);
+    setError(null); // Clear any previous auth errors
+  };
 
   const handleFileSelect = async (file: File) => {
     setAnalyzing(true);
@@ -22,10 +43,14 @@ function App() {
       if (sheetData.length === 0) {
         throw new Error("Không tìm thấy công thức nào trong file này.");
       }
-      const aiResult = await analyzeFormulas(sheetData, userContext);
+      // Pass the custom key (if exists) to the service
+      const aiResult = await analyzeFormulas(sheetData, userContext, savedKey);
       setResult(aiResult);
     } catch (err: any) {
       setError(err.message || "Đã xảy ra lỗi khi phân tích file.");
+      if (err.message && (err.message.includes("API Key") || err.message.includes("nhập API"))) {
+        setShowSettings(true);
+      }
     } finally {
       setAnalyzing(false);
     }
@@ -35,11 +60,6 @@ function App() {
     e.preventDefault();
     if (!sheetLink) return;
 
-    // Simulate analysis for URL input (since we can't fetch private sheets client-side easily without auth)
-    // We will tell the user this feature works best if they describe the formulas or download as xlsx.
-    // For the purpose of the demo, we will analyze the *context* provided if no file is present, 
-    // or guide them to download.
-    
     setError("Hiện tại ứng dụng chưa hỗ trợ đọc trực tiếp Link Google Sheet bảo mật. Vui lòng tải xuống dưới dạng .xlsx và tải lên ở tab 'Tải File'.");
     setActiveTab('upload');
   };
@@ -52,6 +72,57 @@ function App() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50/30">
+      {/* Settings Modal */}
+      {showSettings && (
+        <div className="fixed inset-0 bg-black/50 z-[100] flex items-center justify-center p-4 animate-fade-in">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden transform transition-all scale-100">
+            <div className="bg-slate-800 p-4 flex justify-between items-center text-white">
+              <h3 className="font-semibold flex items-center gap-2">
+                <Settings className="w-5 h-5" /> Cài đặt API
+              </h3>
+              <button onClick={() => setShowSettings(false)} className="hover:bg-slate-700 p-1 rounded-full transition-colors">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="p-6">
+              <label className="block text-sm font-medium text-slate-700 mb-2">
+                Gemini API Key
+              </label>
+              <div className="relative mb-4">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <Key className="h-5 w-5 text-slate-400" />
+                </div>
+                <input
+                  type="password"
+                  value={apiKey}
+                  onChange={(e) => setApiKey(e.target.value)}
+                  placeholder="Nhập API Key của bạn (bắt đầu bằng AIza...)"
+                  className="block w-full pl-10 pr-3 py-3 border border-slate-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500 text-sm"
+                />
+              </div>
+              <p className="text-xs text-slate-500 mb-6">
+                Key của bạn được lưu cục bộ trên trình duyệt này để đảm bảo riêng tư. 
+                Bạn có thể lấy key miễn phí tại <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" className="text-emerald-600 hover:underline">Google AI Studio</a>.
+              </p>
+              <div className="flex justify-end gap-3">
+                <button 
+                  onClick={() => setShowSettings(false)}
+                  className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-lg font-medium text-sm transition-colors"
+                >
+                  Hủy
+                </button>
+                <button 
+                  onClick={handleSaveKey}
+                  className="px-4 py-2 bg-emerald-600 text-white rounded-lg font-medium text-sm hover:bg-emerald-700 transition-colors flex items-center gap-2 shadow-lg shadow-emerald-200"
+                >
+                  <Save className="w-4 h-4" /> Lưu Cài Đặt
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       <header className="border-b border-slate-100 bg-white/80 backdrop-blur-md sticky top-0 z-50">
         <div className="max-w-5xl mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -60,8 +131,17 @@ function App() {
             </div>
             <h1 className="font-bold text-xl text-slate-800 tracking-tight">Excel AI Analyst</h1>
           </div>
-          <div className="text-sm text-slate-500 font-medium hidden sm:block">
-            Powered by Gemini 2.5
+          <div className="flex items-center gap-4">
+            <div className="text-sm text-slate-500 font-medium hidden sm:block">
+              Powered by Gemini 2.5
+            </div>
+            <button 
+              onClick={() => setShowSettings(true)}
+              className={`p-2 rounded-full transition-all duration-300 ${savedKey ? 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100' : 'bg-slate-100 text-slate-400 hover:bg-slate-200'}`}
+              title="Cài đặt API Key"
+            >
+              <Settings className="w-5 h-5" />
+            </button>
           </div>
         </div>
       </header>

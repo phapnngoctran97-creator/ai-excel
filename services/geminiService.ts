@@ -1,8 +1,6 @@
 import { GoogleGenAI, Type, Schema } from "@google/genai";
 import { AnalysisResult, SheetData } from "../types";
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-
 const analysisSchema: Schema = {
   type: Type.OBJECT,
   properties: {
@@ -44,7 +42,18 @@ const analysisSchema: Schema = {
   required: ["overallScore", "complexityLevel", "summary", "suggestions"],
 };
 
-export const analyzeFormulas = async (data: SheetData[], context?: string): Promise<AnalysisResult> => {
+export const analyzeFormulas = async (data: SheetData[], context?: string, customApiKey?: string): Promise<AnalysisResult> => {
+  // Safe access to process.env for browser environments to prevent "process is not defined" crash
+  const defaultKey = typeof process !== "undefined" && process.env ? process.env.API_KEY : "";
+  const apiKey = customApiKey || defaultKey;
+
+  if (!apiKey) {
+    throw new Error("Vui lòng nhập API Key trong phần cài đặt để sử dụng tính năng này.");
+  }
+
+  // Initialize AI instance inside the function call to ensure we have the key and avoid top-level runtime errors
+  const ai = new GoogleGenAI({ apiKey: apiKey });
+
   // Construct a prompt with the formulas
   let promptContent = "Phân tích các công thức Excel sau đây. Mục tiêu là tìm ra lỗi sai, hoặc cách viết tối ưu hơn. \n";
   promptContent += "QUAN TRỌNG: Chỉ đề xuất các công thức CHÍNH XÁC về mặt cú pháp. Không được bịa ra hàm không tồn tại. Nếu đề xuất hàm mới (XLOOKUP, LET...), hãy chắc chắn nó hoạt động đúng.\n\n";
@@ -98,8 +107,12 @@ export const analyzeFormulas = async (data: SheetData[], context?: string): Prom
     
     return JSON.parse(text) as AnalysisResult;
 
-  } catch (error) {
+  } catch (error: any) {
     console.error("Gemini Analysis Error:", error);
+    // Handle API Key errors specifically
+    if (error.message?.includes("API key") || error.toString().includes("403")) {
+        throw new Error("API Key không hợp lệ hoặc đã hết hạn mức. Vui lòng kiểm tra lại trong phần Cài đặt.");
+    }
     throw new Error("Không thể phân tích file vào lúc này. Vui lòng thử lại.");
   }
 };
