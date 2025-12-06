@@ -1,0 +1,105 @@
+import { GoogleGenAI, Type, Schema } from "@google/genai";
+import { AnalysisResult, SheetData } from "../types";
+
+const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+
+const analysisSchema: Schema = {
+  type: Type.OBJECT,
+  properties: {
+    overallScore: {
+      type: Type.NUMBER,
+      description: "Score from 0 to 100 representing the quality of the Excel formulas.",
+    },
+    complexityLevel: {
+      type: Type.STRING,
+      enum: ["Low", "Medium", "High"],
+      description: "The overall complexity of the spreadsheet logic.",
+    },
+    summary: {
+      type: Type.STRING,
+      description: "A short summary paragraph in Vietnamese about the spreadsheet's health.",
+    },
+    suggestions: {
+      type: Type.ARRAY,
+      items: {
+        type: Type.OBJECT,
+        properties: {
+          originalFormula: { type: Type.STRING },
+          issueType: {
+            type: Type.STRING,
+            enum: ["Efficiency", "Readability", "Error", "Modernization"],
+          },
+          description: { type: Type.STRING, description: "Explanation of the issue in Vietnamese." },
+          suggestion: { type: Type.STRING, description: "How to fix it in Vietnamese." },
+          improvedFormula: { type: Type.STRING, description: "The optimized formula code. MUST be a valid executable Excel/Sheet formula." },
+          compatibility: { 
+            type: Type.STRING, 
+            description: "Specify version required. EX: 'Excel 2019+', 'Office 365', 'Google Sheets Only', 'All Versions'." 
+          }
+        },
+        required: ["originalFormula", "issueType", "description", "suggestion", "improvedFormula", "compatibility"],
+      },
+    },
+  },
+  required: ["overallScore", "complexityLevel", "summary", "suggestions"],
+};
+
+export const analyzeFormulas = async (data: SheetData[], context?: string): Promise<AnalysisResult> => {
+  // Construct a prompt with the formulas
+  let promptContent = "Phân tích các công thức Excel sau đây. Mục tiêu là tìm ra lỗi sai, hoặc cách viết tối ưu hơn. \n";
+  promptContent += "QUAN TRỌNG: Chỉ đề xuất các công thức CHÍNH XÁC về mặt cú pháp. Không được bịa ra hàm không tồn tại. Nếu đề xuất hàm mới (XLOOKUP, LET...), hãy chắc chắn nó hoạt động đúng.\n\n";
+  
+  if (context) {
+    promptContent += `Ngữ cảnh bổ sung từ người dùng: ${context}\n\n`;
+  }
+
+  data.forEach(sheet => {
+    promptContent += `Sheet: ${sheet.name}\n`;
+    sheet.formulas.forEach(f => {
+      promptContent += `- Formula: ${f.formula} (Used ${f.frequency} times)\n`;
+    });
+    promptContent += "\n";
+  });
+
+  promptContent += "Hãy đưa ra đánh giá, điểm số và các gợi ý cải thiện cụ thể bằng tiếng Việt.";
+
+  try {
+    const response = await ai.models.generateContent({
+      model: "gemini-2.5-flash",
+      contents: promptContent,
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: analysisSchema,
+        systemInstruction: `Bạn là chuyên gia Excel/Google Sheets hàng đầu (MVP).
+        
+        NGHIÊM CẤM HALLUCINATION (ẢO GIÁC):
+        1. Tuyệt đối KHÔNG bịa ra tên hàm không có thật.
+        2. Kiểm tra kỹ cú pháp. Ví dụ: DATEDIF trong Excel khác Google Sheets.
+        
+        QUY TẮC TƯƠNG THÍCH VÀ SỬA LỖI (RẤT QUAN TRỌNG):
+        1. Người dùng phàn nàn rằng các hàm "hiện đại" không chạy được hoặc lỗi "single cell... matching value could not be found".
+           - NGUYÊN NHÂN: Công thức mảng trong Google Sheets chưa được bọc ARRAYFORMULA, hoặc Excel đời cũ không hỗ trợ Dynamic Arrays.
+           - GIẢI PHÁP: Nếu đề xuất cho Google Sheets trả về mảng, BẮT BUỘC bọc trong =ARRAYFORMULA(...). Ví dụ: =ARRAYFORMULA(VLOOKUP(...)).
+        
+        2. Ưu tiên giải pháp an toàn (Excel 2016+, Google Sheets thường) trừ khi người dùng yêu cầu cụ thể các hàm mới.
+        
+        3. CHỈ dùng XLOOKUP, LET, LAMBDA, TEXTJOIN nếu vấn đề không thể giải quyết bằng hàm thường, HOẶC nếu giải pháp hiện đại tối ưu hơn hẳn.
+        
+        4. Nếu dùng hàm mới (Excel 365) hoặc hàm riêng của Google Sheets (QUERY, REGEXEXTRACT, ARRAYFORMULA), bạn BẮT BUỘC phải ghi rõ vào trường 'compatibility'.
+        
+        Quy tắc phản hồi:
+        - Trả lời hoàn toàn bằng tiếng Việt.
+        - Giải thích dễ hiểu, ngắn gọn.`
+      }
+    });
+
+    const text = response.text;
+    if (!text) throw new Error("No response from AI");
+    
+    return JSON.parse(text) as AnalysisResult;
+
+  } catch (error) {
+    console.error("Gemini Analysis Error:", error);
+    throw new Error("Không thể phân tích file vào lúc này. Vui lòng thử lại.");
+  }
+};

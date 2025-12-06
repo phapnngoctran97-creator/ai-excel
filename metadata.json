@@ -1,0 +1,5 @@
+{
+  "name": "Excel AI Analyst",
+  "description": "Một ứng dụng thông minh giúp phân tích, tối ưu hóa và gỡ lỗi các công thức Excel/Google Sheets của bạn bằng công nghệ AI.",
+  "requestFramePermissions": []
+}
