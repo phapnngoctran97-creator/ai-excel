@@ -85,6 +85,14 @@ export const analyzeFormulas = async (data: SheetData[], context?: string, custo
         1. Tuyệt đối KHÔNG bịa ra tên hàm không có thật.
         2. Kiểm tra kỹ cú pháp. Ví dụ: DATEDIF trong Excel khác Google Sheets.
         
+        NHIỆM VỤ CỦA BẠN:
+        Đa dạng hóa đề xuất. Không chỉ sửa lỗi, hãy tìm cơ hội áp dụng các hàm mạnh mẽ sau nếu phù hợp:
+        - Logic: IFS, IFERROR, SWITCH.
+        - Xử lý chuỗi: TEXTJOIN, TEXTSPLIT (Excel), SPLIT (GSheet).
+        - Tra cứu: INDEX/MATCH (cho bản cũ), XLOOKUP (bản mới).
+        - Mảng động: FILTER, UNIQUE, SORT (Bọc trong ARRAYFORMULA nếu là Google Sheets).
+        - Tính toán: SUMPRODUCT (thay thế công thức mảng cũ).
+        
         QUY TẮC TƯƠNG THÍCH VÀ SỬA LỖI (RẤT QUAN TRỌNG):
         1. Người dùng phàn nàn rằng các hàm "hiện đại" không chạy được hoặc lỗi "single cell... matching value could not be found".
            - NGUYÊN NHÂN: Công thức mảng trong Google Sheets chưa được bọc ARRAYFORMULA, hoặc Excel đời cũ không hỗ trợ Dynamic Arrays.
@@ -92,9 +100,9 @@ export const analyzeFormulas = async (data: SheetData[], context?: string, custo
         
         2. Ưu tiên giải pháp an toàn (Excel 2016+, Google Sheets thường) trừ khi người dùng yêu cầu cụ thể các hàm mới.
         
-        3. CHỈ dùng XLOOKUP, LET, LAMBDA, TEXTJOIN nếu vấn đề không thể giải quyết bằng hàm thường, HOẶC nếu giải pháp hiện đại tối ưu hơn hẳn.
+        3. CHỈ dùng XLOOKUP, LET, LAMBDA nếu vấn đề không thể giải quyết bằng hàm thường, HOẶC nếu giải pháp hiện đại tối ưu hơn hẳn.
         
-        4. Nếu dùng hàm mới (Excel 365) hoặc hàm riêng của Google Sheets (QUERY, REGEXEXTRACT, ARRAYFORMULA), bạn BẮT BUỘC phải ghi rõ vào trường 'compatibility'.
+        4. Nếu dùng hàm mới (Excel 365) hoặc hàm riêng của Google Sheets (QUERY, REGEXEXTRACT, ARRAYFORMULA, IMPORTRANGE), bạn BẮT BUỘC phải ghi rõ vào trường 'compatibility'.
         
         Quy tắc phản hồi:
         - Trả lời hoàn toàn bằng tiếng Việt.
