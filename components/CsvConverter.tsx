@@ -23,8 +23,8 @@ export const CsvConverter: React.FC = () => {
 
   const processFile = (file: File) => {
     const fileName = file.name.toLowerCase();
-    if (!fileName.endsWith('.csv') && !fileName.endsWith('.xlsx') && !fileName.endsWith('.xls')) {
-      setError('Vui lòng chỉ tải lên file .csv hoặc .xlsx/.xls');
+    if (!fileName.endsWith('.csv') && !fileName.endsWith('.xlsx') && !fileName.endsWith('.xls') && !fileName.endsWith('.xlsx.xlsx')) {
+      setError('Vui lòng chỉ tải lên file .csv hoặc .xlsx/.xls/.xlsx.xlsx');
       return;
     }
 
@@ -56,13 +56,14 @@ export const CsvConverter: React.FC = () => {
 
   const downloadAsExcel = () => {
     if (!workbook || !uploadedFile) return;
-    const newName = uploadedFile.name.replace(/\.(csv|xlsx|xls)$/i, '') + '_converted.xlsx';
+    // Handle replacing extension correctly even with double extension
+    const newName = uploadedFile.name.replace(/(\.xlsx\.xlsx|\.xlsx|\.xls|\.csv)$/i, '') + '_converted.xlsx';
     XLSX.writeFile(workbook, newName);
   };
 
   const downloadAsCsv = () => {
     if (!workbook || !uploadedFile) return;
-    const newName = uploadedFile.name.replace(/\.(csv|xlsx|xls)$/i, '') + '_converted.csv';
+    const newName = uploadedFile.name.replace(/(\.xlsx\.xlsx|\.xlsx|\.xls|\.csv)$/i, '') + '_converted.csv';
     // Get first sheet
     const ws = workbook.Sheets[workbook.SheetNames[0]];
     const csv = XLSX.utils.sheet_to_csv(ws);
@@ -104,7 +105,7 @@ export const CsvConverter: React.FC = () => {
         >
           <input
             type="file"
-            accept=".csv, .xlsx, .xls"
+            accept=".csv, .xlsx, .xls, .xlsx.xlsx"
             className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
             onChange={handleFileUpload}
             disabled={isProcessing}
@@ -133,7 +134,7 @@ export const CsvConverter: React.FC = () => {
                 Kéo thả file vào đây
               </h3>
               <p className="text-sm text-slate-500 max-w-xs mx-auto">
-                Chấp nhận file .csv hoặc .xlsx.
+                Chấp nhận file .csv, .xlsx hoặc .xlsx.xlsx
               </p>
               
               <button className="mt-6 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium shadow-lg shadow-blue-200 flex items-center gap-2 pointer-events-none">

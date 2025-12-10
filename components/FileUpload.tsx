@@ -14,10 +14,11 @@ export const FileUpload: React.FC<FileUploadProps> = ({ onFileSelect, isAnalyzin
       if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
         const file = e.dataTransfer.files[0];
         const fileName = file.name.toLowerCase();
-        if (fileName.endsWith('.xlsx') || fileName.endsWith('.xls') || fileName.endsWith('.csv')) {
+        // Check for .xlsx, .xls, .csv, and explicitly .xlsx.xlsx
+        if (fileName.endsWith('.xlsx') || fileName.endsWith('.xls') || fileName.endsWith('.csv') || fileName.endsWith('.xlsx.xlsx')) {
           onFileSelect(file);
         } else {
-          alert('Vui lòng chỉ tải lên file Excel (.xlsx, .xls) hoặc CSV (.csv)');
+          alert('Vui lòng chỉ tải lên file Excel (.xlsx, .xls, .xlsx.xlsx) hoặc CSV (.csv)');
         }
       }
     },
@@ -45,7 +46,7 @@ export const FileUpload: React.FC<FileUploadProps> = ({ onFileSelect, isAnalyzin
     >
       <input
         type="file"
-        accept=".xlsx, .xls, .csv"
+        accept=".xlsx, .xls, .csv, .xlsx.xlsx"
         className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed"
         onChange={handleFileInput}
         disabled={isAnalyzing}
@@ -61,7 +62,7 @@ export const FileUpload: React.FC<FileUploadProps> = ({ onFileSelect, isAnalyzin
         Kéo thả file Excel hoặc CSV vào đây
       </h3>
       <p className="text-sm text-slate-500 max-w-xs">
-        Hỗ trợ định dạng .xlsx, .xls và .csv
+        Hỗ trợ định dạng .xlsx, .xls, .xlsx.xlsx và .csv
       </p>
     </div>
   );
