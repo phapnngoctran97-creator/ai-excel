@@ -44,7 +44,7 @@ function App() {
     try {
       const sheetData = await parseExcelFile(file);
       if (sheetData.length === 0) {
-        throw new Error("Không tìm thấy công thức nào trong file này.");
+        throw new Error("Không tìm thấy công thức nào trong file này. Nếu đây là file CSV, hãy sử dụng tính năng 'Công Cụ' để chuyển đổi trước.");
       }
       // Pass the custom key (if exists) to the service
       const aiResult = await analyzeFormulas(sheetData, userContext, savedKey);
@@ -109,7 +109,7 @@ function App() {
                       : 'bg-slate-50 text-slate-500 hover:text-slate-700'
                   }`}
                 >
-                  <UploadIcon /> Tải File Excel
+                  <UploadIcon /> Tải File Excel / CSV
                 </button>
                 <button
                   onClick={() => setActiveTab('gsheet')}

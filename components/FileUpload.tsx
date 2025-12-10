@@ -1,5 +1,5 @@
 import React, { useCallback } from 'react';
-import { Upload, FileSpreadsheet } from 'lucide-react';
+import { Upload, FileSpreadsheet, FileText } from 'lucide-react';
 
 interface FileUploadProps {
   onFileSelect: (file: File) => void;
@@ -13,10 +13,11 @@ export const FileUpload: React.FC<FileUploadProps> = ({ onFileSelect, isAnalyzin
       if (isAnalyzing) return;
       if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
         const file = e.dataTransfer.files[0];
-        if (file.name.endsWith('.xlsx') || file.name.endsWith('.xls')) {
+        const fileName = file.name.toLowerCase();
+        if (fileName.endsWith('.xlsx') || fileName.endsWith('.xls') || fileName.endsWith('.csv')) {
           onFileSelect(file);
         } else {
-          alert('Vui lòng chỉ tải lên file Excel (.xlsx, .xls)');
+          alert('Vui lòng chỉ tải lên file Excel (.xlsx, .xls) hoặc CSV (.csv)');
         }
       }
     },
@@ -44,21 +45,23 @@ export const FileUpload: React.FC<FileUploadProps> = ({ onFileSelect, isAnalyzin
     >
       <input
         type="file"
-        accept=".xlsx, .xls"
+        accept=".xlsx, .xls, .csv"
         className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed"
         onChange={handleFileInput}
         disabled={isAnalyzing}
       />
       
-      <div className="bg-white p-4 rounded-full shadow-sm mb-4 group-hover:scale-110 transition-transform duration-300">
+      <div className="bg-white p-4 rounded-full shadow-sm mb-4 group-hover:scale-110 transition-transform duration-300 flex items-center gap-2">
         <FileSpreadsheet className="w-8 h-8 text-emerald-600" />
+        <span className="text-slate-300 text-xl">/</span>
+        <FileText className="w-8 h-8 text-blue-500" />
       </div>
       
       <h3 className="text-lg font-semibold text-slate-700 mb-2">
-        Kéo thả file Excel vào đây
+        Kéo thả file Excel hoặc CSV vào đây
       </h3>
       <p className="text-sm text-slate-500 max-w-xs">
-        Hoặc nhấp để chọn file từ máy tính của bạn (.xlsx, .xls)
+        Hỗ trợ định dạng .xlsx, .xls và .csv
       </p>
     </div>
   );
