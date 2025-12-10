@@ -56,7 +56,7 @@ export const analyzeFormulas = async (data: SheetData[], context?: string, custo
 
   // Construct a prompt with the formulas
   let promptContent = "Phân tích các công thức Excel sau đây. Mục tiêu là tìm ra lỗi sai, hoặc cách viết tối ưu hơn. \n";
-  promptContent += "QUAN TRỌNG: Chỉ đề xuất các công thức CHÍNH XÁC về mặt cú pháp. Không được bịa ra hàm không tồn tại. Nếu đề xuất hàm mới (XLOOKUP, LET...), hãy chắc chắn nó hoạt động đúng.\n\n";
+  promptContent += "QUAN TRỌNG: Khi đưa ra 'improvedFormula', BẮT BUỘC phải sử dụng ĐÚNG địa chỉ ô/cột từ công thức gốc. KHÔNG ĐƯỢC dùng các từ mô tả như 'table_array', 'range', 'criteria'. Ví dụ: Nếu gốc là =VLOOKUP(A1,B:C,2,0), đề xuất phải là =XLOOKUP(A1,B:B,C:C) chứ KHÔNG phải =XLOOKUP(lookup_value, ...).\n\n";
   
   if (context) {
     promptContent += `Ngữ cảnh bổ sung từ người dùng: ${context}\n\n`;
@@ -65,7 +65,7 @@ export const analyzeFormulas = async (data: SheetData[], context?: string, custo
   data.forEach(sheet => {
     promptContent += `Sheet: ${sheet.name}\n`;
     sheet.formulas.forEach(f => {
-      promptContent += `- Formula: ${f.formula} (Used ${f.frequency} times)\n`;
+      promptContent += `- Formula: ${f.formula} (Location: ${f.location})\n`;
     });
     promptContent += "\n";
   });
@@ -81,9 +81,10 @@ export const analyzeFormulas = async (data: SheetData[], context?: string, custo
         responseSchema: analysisSchema,
         systemInstruction: `Bạn là chuyên gia Excel/Google Sheets hàng đầu (MVP).
         
-        NGHIÊM CẤM HALLUCINATION (ẢO GIÁC):
-        1. Tuyệt đối KHÔNG bịa ra tên hàm không có thật.
-        2. Kiểm tra kỹ cú pháp. Ví dụ: DATEDIF trong Excel khác Google Sheets.
+        NGHIÊM CẤM HALLUCINATION (ẢO GIÁC) & CÚ PHÁP GIẢ:
+        1. Tuyệt đối KHÔNG sử dụng placeholder (biến giả). Ví dụ: KHÔNG viết =SUM(range), PHẢI viết =SUM(A1:A10) dựa trên context.
+        2. Nếu không xác định được tham chiếu chính xác, hãy giữ nguyên tham chiếu cũ, chỉ thay đổi tên hàm hoặc logic.
+        3. Kiểm tra kỹ cú pháp. Ví dụ: DATEDIF trong Excel khác Google Sheets.
         
         NHIỆM VỤ CỦA BẠN:
         Đa dạng hóa đề xuất. Không chỉ sửa lỗi, hãy tìm cơ hội áp dụng các hàm mạnh mẽ sau nếu phù hợp:
